@@ -1,12 +1,12 @@
 - [ ] Data Preprocessing: Data cleaning, Tokenization
 - [ ] Parse the raw dataset into a trainable structure (Create a map between the raw input and its corresponding label)
 - [ ] Map example:
-```json
-map: {
-"can":"none",
-"i" : "none",
-..
-"large": "SIZE"
+```js
+map = {
+  "can": "none",
+  "i": "none",
+  ...
+  "large": "SIZE"
 }
 ```
 - [ ] Extract features like word embeddings and contextual embeddings
