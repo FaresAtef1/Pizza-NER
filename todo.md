@@ -13,3 +13,4 @@ map = {
 - [ ] Try different models like RNN, LSTM, BiLSTM, GRU 
 - [ ] Try different optimizers like Adam, SGD
 - [ ] Handle cases like "bbq pulled pork"
+- [ ] Handle Not
