@@ -4,6 +4,8 @@ import nltk  # For tokenization and natural language processing
 import json  # For handling JSON files
 from transformers import BertTokenizer, BertModel  # BERT tokenizer and model
 import torch  # For PyTorch tensors and operations
+from sklearn.preprocessing import OneHotEncoder
+import numpy as np
 
 # Hyperparameters for the Word2Vec model
 VECTOR_SIZE = 50  # Size of word vectors
@@ -146,6 +148,17 @@ def fix_json_file(path):
     fixed_file.truncate()
     fixed_file.write("]")
     fixed_file.close()
+
+
+def train_one_hot_encoding_model(corpus):
+    vocab = np.flatten(list_of_lists(corpus))
+    enc = OneHotEncoder(handle_unknown="ignore")
+    enc.fit(vocab)
+    return enc
+
+
+def get_one_hot_encoding(model, word):
+    return model.transform([[word]])
 
 
 def load_pretrained_model(model_name):
