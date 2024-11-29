@@ -8,12 +8,10 @@ import numpy as np
 import utils
 
 # Hyperparameters for the Word2Vec model
-VECTOR_SIZE = 50  # Size of word vectors
 WINDOW_SIZE = 5  # Context window size
 THREADS = 4  # Number of threads to use for training
 CUTOFF_FREQ = 1  # Minimum frequency for a word to be included in vocabulary
 EPOCHS = 100  # Number of training epochs
-
 
 def list_of_lists(sentences):
     """
@@ -30,7 +28,6 @@ def list_of_lists(sentences):
     for sentence in sentences:
         tokenized_sentences.append(nltk.word_tokenize(sentence))
     return tokenized_sentences
-
 
 def build_dev_corpus_from_json(data):
     """
@@ -66,7 +63,7 @@ def build_train_corpus_from_json(data):
     return corpus
 
 
-def train_gensim_w2v_model(corpus):
+def train_gensim_w2v_model(tokenized_sentences, embedding_size):
     """
     Trains a Word2Vec model on the given corpus of sentences.
 
@@ -76,10 +73,9 @@ def train_gensim_w2v_model(corpus):
     Returns:
         A trained Gensim Word2Vec model.
     """
-    tokenized_sentences = list_of_lists(corpus)
     model = Word2Vec(
         sentences=tokenized_sentences,
-        vector_size=VECTOR_SIZE,
+        vector_size=embedding_size,
         window=WINDOW_SIZE,
         min_count=CUTOFF_FREQ,
         workers=THREADS,
@@ -93,7 +89,7 @@ def train_gensim_w2v_model(corpus):
     return model
 
 
-def train_gensim_fastext_model(corpus):
+def train_gensim_fastext_model(tokenized_sentences, embedding_size):
     """
     Trains a Gensim FastText model on the given corpus of sentences.
 
@@ -103,10 +99,9 @@ def train_gensim_fastext_model(corpus):
     Returns:
         A trained Gensim FastText model.
     """
-    tokenized_sentences = list_of_lists(corpus)
     model = FastText(
         sentences=tokenized_sentences,
-        vector_size=VECTOR_SIZE,
+        vector_size=embedding_size,
         window=WINDOW_SIZE,
         min_count=CUTOFF_FREQ,
         workers=THREADS,
@@ -114,8 +109,8 @@ def train_gensim_fastext_model(corpus):
     return model
 
 
-def train_one_hot_encoding_model(corpus):
-    vocab = np.flatten(list_of_lists(corpus))
+def train_one_hot_encoding_model(tokenized_sentences):
+    vocab = np.flatten(tokenized_sentences)
     enc = OneHotEncoder(handle_unknown="ignore")
     enc.fit(vocab)
     return enc
