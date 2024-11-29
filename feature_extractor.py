@@ -1,11 +1,11 @@
 from gensim.models import Word2Vec, FastText  # For Word2Vec model
 import gensim  # General Gensim utilities
 import nltk  # For tokenization and natural language processing
-import json  # For handling JSON files
 from transformers import BertTokenizer, BertModel  # BERT tokenizer and model
 import torch  # For PyTorch tensors and operations
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
+import utils
 
 # Hyperparameters for the Word2Vec model
 VECTOR_SIZE = 50  # Size of word vectors
@@ -112,42 +112,6 @@ def train_gensim_fastext_model(corpus):
         workers=THREADS,
     )
     return model
-
-
-def read_data(path):
-    """
-    Reads a JSON file and loads its content into a Python object.
-
-    Args:
-        path: Path to the JSON file.
-
-    Returns:
-        Parsed JSON data as a Python object.
-    """
-    with open(path, "r") as file:
-        data = json.load(file)
-    return data
-
-
-def fix_json_file(path):
-    """
-    Fixes a corrupted JSON file by formatting it properly.
-
-    Args:
-        path: Path to the corrupted JSON file.
-
-    Returns:
-        None. Writes a corrected version of the JSON file to disk.
-    """
-    fixed_file = open("fixed_" + path, "a")
-    fixed_file.write("[\n")
-    with open(path, "r") as file:
-        for line in file:
-            fixed_file.write(line[:-1] + ",\n")
-    fixed_file.seek(fixed_file.tell() - 3)
-    fixed_file.truncate()
-    fixed_file.write("]")
-    fixed_file.close()
 
 
 def train_one_hot_encoding_model(corpus):
