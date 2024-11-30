@@ -182,20 +182,23 @@ def label_complete_input (input_list, structure_text1_list, structure_text2_list
         structure_text2: The structured text containing attributes and their values. (train.TOP)
     
     Returns:
-        3 lists of tuples where each token in the input text is paired with its corresponding label.
+        2 lists of tuples where each token in the input text is paired with its corresponding label.
+        1 list of tokens for input text.
     """
     labeled_output1 = []
     labeled_output2 = []
+    list_of_tokens = []
     for text, struct1, struct2 in zip(input_list, structure_text1_list, structure_text2_list):
         cleaned_text = clean_string(text)
         input_tokens = tokenize_string(cleaned_text)
+        list_of_tokens.append(input_tokens)
         structure1_tokens = tokenize_string(struct1)
         _, labels = label_tokens1(input_tokens, structure1_tokens)
         labeled_output1.append(labels)
         structure2_tokens = tokenize_string(struct2)
         _, labels = label_tokens2(input_tokens, structure2_tokens)
         labeled_output2.append(labels)
-    return labeled_output1, labeled_output2
+    return labeled_output1, labeled_output2, list_of_tokens
 
 
 def get_train_dataset(data):
