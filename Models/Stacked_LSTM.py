@@ -9,14 +9,15 @@ import pickle
 NUM_CLASSES=23
 BATCH_SIZE=64
 EPOCHS=10
-HIDDEN_SIZE=64
-NUM_LAYERS=1
+HIDDEN_SIZE=512
+NUM_LAYERS=4
 VECTOR_SIZE = 50  # Size of word vectors
 WINDOW_SIZE = 5  # Context window size
 THREADS = 4  # Number of threads to use for training
 CUTOFF_FREQ = 1  # Minimum frequency for a word to be included in vocabulary
 TRAINING_SIZE = 100000  
 TEST_SIZE = 10
+DROP_OUT=0.2
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -59,7 +60,7 @@ def collate_fn(batch):
 class LargeWordRNN(nn.Module):
     def __init__(self, input_size, hidden_size, num_classes):
         super(LargeWordRNN, self).__init__()
-        self.rnn = nn.LSTM(input_size, hidden_size,num_layers=NUM_LAYERS, batch_first=True, bidirectional=True)
+        self.rnn = nn.LSTM(input_size, hidden_size,num_layers=NUM_LAYERS, batch_first=True, bidirectional=True, dropout=DROP_OUT)
         self.fc = nn.Linear(hidden_size * 2, num_classes)
     
     def forward(self, x, lengths):

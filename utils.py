@@ -80,7 +80,7 @@ def label_tokens1(input_tokens, structure_tokens):
             token_label.append((struct_token, label))
     
     token_label_counter = 0 
-    entity_to_num = {"I_NUMBER": 0, "I_SIZE": 1, "I_TOPPING": 2, "I_STYLE": 3, "I_DRINKTYPE": 4, "I_CONTAINERTYPE": 5, "I_VOLUME": 6, "I_QUANTITY": 7, "B_NUMBER": 8, "B_SIZE": 9, "B_TOPPING": 10, "B_STYLE": 11, "B_DRINKTYPE": 12, "B_CONTAINERTYPE": 13, "B_VOLUME": 14, "B_QUANTITY": 15, "I_NOT_TOPPING": 16, "B_NOT_TOPPING": 17, "NONE": 18}
+    entity_to_num = {"I_NUMBER": 0, "I_SIZE": 1, "I_TOPPING": 2, "I_STYLE": 3, "I_DRINKTYPE": 4, "I_CONTAINERTYPE": 5, "I_VOLUME": 6, "I_QUANTITY": 7, "B_NUMBER": 8, "B_SIZE": 9, "B_TOPPING": 10, "B_STYLE": 11, "B_DRINKTYPE": 12, "B_CONTAINERTYPE": 13, "B_VOLUME": 14, "B_QUANTITY": 15, "I_NOT_TOPPING": 16, "B_NOT_TOPPING": 17,"I_NOT_STYLE": 18, "B_NOT_STYLE": 19, "B_NOT_QUANTITY": 20, "I_NOT_QUANTITY": 21, "NONE": 22}
     label_input=[]
     label_input_nums = []
     for in_token in input_tokens:
@@ -219,6 +219,23 @@ def get_train_dataset(data):
         decoupled.append(d["train.TOP-DECOUPLED"])
     return src, top, decoupled
 
+def get_dev_dataset(data):
+    """
+    Builds a development corpus from a JSON-like dataset.
+    Extracts the "dev.SRC" and "dev.TOP" field from each item in the dataset.
+
+    Args:
+        data: List of dictionaries, where each dictionary contains a "dev.SRC" key and a "dev.TOP" key.
+
+    Returns:
+        2 lists of strings representing the development corpus.
+    """
+    src = []
+    top = []
+    for d in data:
+        src.append(d["dev.SRC"])
+        top.append(d["dev.TOP"])
+    return src, top
 
 def read_data(path):
     """
@@ -233,3 +250,121 @@ def read_data(path):
     with open(path, 'r') as file:
         data = json.load(file)
     return data
+
+def label_tokens_dev(input_tokens, structure_tokens):
+    """
+    Labels the input text based on a structured representation and a list of attributes.
+
+    Args:
+        input_tokens: The tokenized input text.
+        structure_text: The structured text containing attributes and their values as tokens.
+
+    Returns:
+        A list of tuples where each token in the input text is paired with its corresponding label.
+    """
+    attribute_values = {"NUMBER", "SIZE", "TOPPING", "STYLE", "DRINKTYPE", "CONTAINERTYPE", "VOLUME", "QUANTITY"}
+    execluded = ["PIZZAORDER", "DRINKORDER", "COMPLEX_TOPPING"]
+    token_label = []
+    curr_attr = "NONE"
+    is_not_topping = False
+    not_parentheses = 0
+    is_begin = True
+    for struct_token in structure_tokens:
+        if struct_token == "NOT":
+            is_not_topping = True
+            continue
+        if struct_token == "(" and is_not_topping:
+            not_parentheses += 1
+        if struct_token == ")" and is_not_topping:
+            not_parentheses -= 1
+        elif struct_token == ")" :
+            curr_attr = "NONE"
+            is_begin = True
+
+        if not_parentheses == 0:
+            is_not_topping = False
+
+        if struct_token in attribute_values:
+            curr_attr = struct_token
+            is_begin = True
+        elif struct_token not in {"(", ")"} and struct_token not in execluded:
+            if curr_attr == "NONE":
+                continue
+            label = curr_attr
+            if is_not_topping:
+                label = "NOT_" + curr_attr
+            if is_begin:
+                label="B_" + label
+                is_begin = False
+            else:
+                label="I_" + label
+            token_label.append((struct_token, label))
+    
+    token_label_counter = 0 
+    entity_to_num = {"I_NUMBER": 0, "I_SIZE": 1, "I_TOPPING": 2, "I_STYLE": 3, "I_DRINKTYPE": 4, "I_CONTAINERTYPE": 5, "I_VOLUME": 6, "I_QUANTITY": 7, "B_NUMBER": 8, "B_SIZE": 9, "B_TOPPING": 10, "B_STYLE": 11, "B_DRINKTYPE": 12, "B_CONTAINERTYPE": 13, "B_VOLUME": 14, "B_QUANTITY": 15, "I_NOT_TOPPING": 16, "B_NOT_TOPPING": 17,"I_NOT_STYLE": 18, "B_NOT_STYLE": 19, "B_NOT_QUANTITY": 20, "I_NOT_QUANTITY": 21, "NONE": 22}
+    label_input=[]  
+    label_input_nums = []
+    for in_token in input_tokens:
+        if token_label_counter >= len(token_label):
+            label_input.append((in_token,"NONE"))
+            label_input_nums.append(entity_to_num["NONE"])
+            continue
+        if token_label[token_label_counter][0] == in_token:
+            label_input.append((in_token,token_label[token_label_counter][1]))
+            label_input_nums.append(entity_to_num[token_label[token_label_counter][1]])
+            token_label_counter += 1
+        else:
+            label_input.append((in_token,"NONE"))
+            label_input_nums.append(entity_to_num["NONE"])
+    return label_input, label_input_nums
+
+def label_complete_dev (input_list, structure_text_list):
+    """
+    This function is used for labeling the development data.
+
+    Args:
+        input_list: The raw input text.
+        structure_text1: The structured text containing attributes and their values. (dev.TOP)
+    
+    Returns:
+        1 list of tuples where each token in the input text is paired with its corresponding label.
+        1 list of tokens for input text.
+    """
+    labeled_output = []
+    list_of_tokens = []
+    for text, struct in zip(input_list, structure_text_list):
+        cleaned_text = clean_string(text)
+        input_tokens = tokenize_string(cleaned_text)
+        list_of_tokens.append(input_tokens)
+        structure1_tokens = tokenize_string(struct)
+        _, labels = label_tokens_dev(input_tokens, structure1_tokens)
+        labeled_output.append(labels)
+    return labeled_output, list_of_tokens
+
+def calc_accuracy(model_out, gold_labels, NUM_CLASSES=23):
+    """
+    Calculates the accuracy of the model.
+
+    Args:
+        preds: The predicted labels.
+        labels: The true labels.
+
+    Returns:
+        Confusion matrix
+        The accuracy of the model.
+    """
+    confusion_matrix = [[0 for i in range(NUM_CLASSES)] for j in range(NUM_CLASSES)]
+    # each row in model_out is a sequence of labels for a sentence, loop over all sequences and for each sequence loop over all labels
+    for i in range(len(model_out)):
+        for j in range(len(model_out[i])):
+            confusion_matrix[model_out[i][j]][gold_labels[i][j]] += 1
+            if model_out[i][j] != gold_labels[i][j]:
+                print("Wrong prediction in", i, "th sentence at", j, "th token")
+    correct = 0
+    total = 0
+    for i in range(NUM_CLASSES):
+        for j in range(NUM_CLASSES):
+            if i == j:
+                correct += confusion_matrix[i][j]
+            total += confusion_matrix[i][j]
+    return confusion_matrix, 1.0*correct / total

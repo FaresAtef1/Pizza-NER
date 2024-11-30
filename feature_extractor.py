@@ -6,6 +6,7 @@ import torch  # For PyTorch tensors and operations
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
 import utils
+import gensim.downloader
 
 # Hyperparameters for the Word2Vec model
 WINDOW_SIZE = 5  # Context window size
@@ -28,39 +29,6 @@ def list_of_lists(sentences):
     for sentence in sentences:
         tokenized_sentences.append(nltk.word_tokenize(sentence))
     return tokenized_sentences
-
-def build_dev_corpus_from_json(data):
-    """
-    Builds a development corpus from a JSON-like dataset.
-    Extracts the "dev.SRC" field from each item in the dataset.
-
-    Args:
-        data: List of dictionaries, where each dictionary contains a "dev.SRC" key.
-
-    Returns:
-        A list of strings representing the development corpus.
-    """
-    corpus = []
-    for d in data:
-        corpus.append(d["dev.SRC"])
-    return corpus
-
-
-def build_train_corpus_from_json(data):
-    """
-    Builds a training corpus from a JSON-like dataset.
-    Extracts the "train.SRC" field from each item in the dataset.
-
-    Args:
-        data: List of dictionaries, where each dictionary contains a "train.SRC" key.
-
-    Returns:
-        A list of strings representing the training corpus.
-    """
-    corpus = []
-    for d in data:
-        corpus.append(d["train.SRC"])
-    return corpus
 
 
 def train_gensim_w2v_model(tokenized_sentences, embedding_size):
