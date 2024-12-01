@@ -2,6 +2,9 @@
 import re
 import nltk
 import json
+from nltk.corpus import stopwords
+from nltk.stem import PorterStemmer
+import string
 
 def clean_string(input_string):
     """
@@ -15,7 +18,7 @@ def clean_string(input_string):
     """
     # Remove special characters and unnecessary punctuation
     # TODO: Add more special characters as needed to be excluded
-    cleaned_string = re.sub(r"[^\w\s'-]", " ", input_string)  # Keeps only alphanumeric characters and spaces and apostrophes and hyphens
+    cleaned_string = re.sub(r"[^\w\s'-,.]", " ", input_string)
     cleaned_string = cleaned_string.lower()
     # Remove extra whitespace
     cleaned_string = re.sub(r"\s+", " ", cleaned_string).strip()
@@ -32,7 +35,13 @@ def tokenize_string(input_string):
         A list of tokens.
     """
     tokens = nltk.word_tokenize(input_string)
-    return tokens
+    # stemming
+    stemmer = PorterStemmer()
+    cleaned_tokens = []
+    for token in tokens:
+        stem_word = stemmer.stem(token) 
+        cleaned_tokens.append(stem_word)
+    return cleaned_tokens
 
 def label_tokens1(input_tokens, structure_tokens):
     """
@@ -341,7 +350,7 @@ def label_complete_dev (input_list, structure_text_list):
         labeled_output.append(labels)
     return labeled_output, list_of_tokens
 
-def calc_accuracy(model_out, gold_labels, NUM_CLASSES=23):
+def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
     """
     Calculates the accuracy of the model.
 
@@ -356,13 +365,15 @@ def calc_accuracy(model_out, gold_labels, NUM_CLASSES=23):
     confusion_matrix = [[0 for i in range(NUM_CLASSES)] for j in range(NUM_CLASSES)]
     # each row in model_out is a sequence of labels for a sentence, loop over all sequences and for each sequence loop over all labels
     for i in range(len(model_out)):
+        printed = False
         for j in range(len(model_out[i])):
-            printed = False
             confusion_matrix[model_out[i][j]][gold_labels[i][j]] += 1
             if model_out[i][j] != gold_labels[i][j]:
                 print("Wrong prediction in", i, "th sentence at", j, "th token")
                 if not printed:
-                    print("Predicted:", model_out[i], "True:", gold_labels[i])
+                    print("Sentence:", corpus[i])
+                    print("Pred:", model_out[i])
+                    print("True:", gold_labels[i])
                     printed = True
     correct = 0
     total = 0
@@ -372,3 +383,5 @@ def calc_accuracy(model_out, gold_labels, NUM_CLASSES=23):
                 correct += confusion_matrix[i][j]
             total += confusion_matrix[i][j]
     return confusion_matrix, 1.0*correct / total
+
+print(tokenize_string(clean_string("I'll wanted a pizza with pepperoni and a cokes")))
