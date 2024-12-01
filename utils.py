@@ -15,7 +15,7 @@ def clean_string(input_string):
     """
     # Remove special characters and unnecessary punctuation
     # TODO: Add more special characters as needed to be excluded
-    cleaned_string = re.sub(r"[^\w\s'-]", "", input_string)  # Keeps only alphanumeric characters and spaces and apostrophes and hyphens
+    cleaned_string = re.sub(r"[^\w\s'-]", " ", input_string)  # Keeps only alphanumeric characters and spaces and apostrophes and hyphens
     cleaned_string = cleaned_string.lower()
     # Remove extra whitespace
     cleaned_string = re.sub(r"\s+", " ", cleaned_string).strip()
@@ -357,9 +357,13 @@ def calc_accuracy(model_out, gold_labels, NUM_CLASSES=23):
     # each row in model_out is a sequence of labels for a sentence, loop over all sequences and for each sequence loop over all labels
     for i in range(len(model_out)):
         for j in range(len(model_out[i])):
+            printed = False
             confusion_matrix[model_out[i][j]][gold_labels[i][j]] += 1
             if model_out[i][j] != gold_labels[i][j]:
                 print("Wrong prediction in", i, "th sentence at", j, "th token")
+                if not printed:
+                    print("Predicted:", model_out[i], "True:", gold_labels[i])
+                    printed = True
     correct = 0
     total = 0
     for i in range(NUM_CLASSES):
