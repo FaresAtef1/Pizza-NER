@@ -369,16 +369,17 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
     confusion_matrix = [[0 for i in range(NUM_CLASSES)] for j in range(NUM_CLASSES)]
     # each row in model_out is a sequence of labels for a sentence, loop over all sequences and for each sequence loop over all labels
     for i in range(len(model_out)):
-        printed = False
+        do_print = False
         for j in range(len(model_out[i])):
             confusion_matrix[model_out[i][j]][gold_labels[i][j]] += 1
             if model_out[i][j] != gold_labels[i][j]:
+                do_print = True
                 print("Wrong prediction in", i, "th sentence at", j, "th token")
-                if not printed:
-                    print("Sentence:", corpus[i])
-                    print("Pred:", model_out[i])
-                    print("True:", gold_labels[i])
-                    printed = True
+        if do_print:
+            print("Sentence:", corpus[i])
+            print("Pred:", model_out[i])
+            print("True:", gold_labels[i])
+
     correct = 0
     total = 0
     for i in range(NUM_CLASSES):
