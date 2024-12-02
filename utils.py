@@ -18,7 +18,7 @@ def clean_string(input_string):
     """
     # Remove special characters and unnecessary punctuation
     # TODO: Add more special characters as needed to be excluded
-    cleaned_string = re.sub(r"[^\w\s'-,.]", " ", input_string)
+    cleaned_string = re.sub(r"[^\w\s'\-,.]", " ", input_string)
     cleaned_string = cleaned_string.lower()
     # Remove extra whitespace
     cleaned_string = re.sub(r"\s+", " ", cleaned_string).strip()
@@ -38,7 +38,11 @@ def tokenize_string(input_string):
     # stemming
     stemmer = PorterStemmer()
     cleaned_tokens = []
+    entity_intent = ["NUMBER", "SIZE", "TOPPING", "STYLE", "DRINKTYPE", "CONTAINERTYPE", "VOLUME", "QUANTITY", "NOT", "PIZZAORDER", "DRINKORDER", "COMPLEX_TOPPING", "ORDER"]
     for token in tokens:
+        if token in entity_intent:
+            cleaned_tokens.append(token)
+            continue
         stem_word = stemmer.stem(token) 
         cleaned_tokens.append(stem_word)
     return cleaned_tokens
@@ -383,5 +387,3 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
                 correct += confusion_matrix[i][j]
             total += confusion_matrix[i][j]
     return confusion_matrix, 1.0*correct / total
-
-print(tokenize_string(clean_string("I'll wanted a pizza with pepperoni and a cokes")))
