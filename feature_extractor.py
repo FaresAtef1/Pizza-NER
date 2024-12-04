@@ -12,7 +12,7 @@ import gensim.downloader
 WINDOW_SIZE = 5  # Context window size
 THREADS = 4  # Number of threads to use for training
 CUTOFF_FREQ = 1  # Minimum frequency for a word to be included in vocabulary
-EPOCHS = 100  # Number of training epochs
+EPOCHS = 10  # Number of training epochs
 
 def list_of_lists(sentences):
     """
