@@ -156,6 +156,23 @@ def bert_text_preparation(text, tokenizer):
     segments_tensors = torch.tensor([segments_ids])
     return tokenized_text, tokens_tensor, segments_tensors
 
+def bert_word_preparation(text, tokenizer):
+    """
+    Prepares text for processing by the BERT model.
+
+    Args:
+        text: Input text as a string.
+        tokenizer: BERT tokenizer.
+
+    Returns:
+        Tuple containing:
+            - Tokenized text as a list of tokens.
+            - Tokens tensor for input to the BERT model.
+            - Segment tensors for input to the BERT model.
+    """
+    marked_text = text
+    tokenized_text = tokenizer.tokenize(marked_text)
+    return tokenized_text
 
 def get_bert_embeddings(tokens_tensor, segments_tensors, model):
     """
@@ -191,10 +208,21 @@ def get_word_bert_embedding(word, text, tokenizer, model):
     Returns:
         Embedding vector for the target word.
     """
-    tokenized_text, tokens_tensor, segments_tensors = bert_text_preparation(
-        text, tokenizer
-    )
-    list_token_embeddings = get_bert_embeddings(tokens_tensor, segments_tensors, model)
-    word_index = tokenized_text.index(word)
-    word_embedding = list_token_embeddings[word_index]
-    return word_embedding
+    tokenized_text, tokens_tensor, segments_tensors = bert_text_preparation(text, tokenizer)
+    tokenized_word= bert_word_preparation(word, tokenizer)
+    tok_embeddings = [] 
+    list_text_embeddings = get_bert_embeddings(tokens_tensor, segments_tensors, model)
+    for tok in tokenized_word:
+        tok_indedx = tokenized_text.index(tok)
+        tok_embedding = list_text_embeddings[tok_indedx]
+        tok_embeddings.append(tok_embedding)
+    average_embedding = np.mean(tok_embeddings, axis=0)
+    return average_embedding
+
+# model, tokenizer = init_bert()
+# emb1 = get_word_bert_embedding("pepsi", "i want to get two medium ham pizzas with one large pepsi.", tokenizer, model)
+# emb2 = get_word_bert_embedding("coke", "lets get one coke five med diet coke and three pepsi in all", tokenizer, model)
+
+# from sklearn.metrics.pairwise import cosine_similarity
+# similarity = cosine_similarity([emb1], [emb2])
+# print(similarity[0][0])

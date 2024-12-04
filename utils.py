@@ -47,6 +47,19 @@ def tokenize_string(input_string):
         cleaned_tokens.append(stem_word)
     return cleaned_tokens
 
+def tokenize_string_bert(input_string):
+    """
+    Tokenizes the input string into tokens.
+    
+    Args:
+        input_string: The string to be tokenized.
+
+    Returns:
+        A list of tokens.
+    """
+    tokens = nltk.word_tokenize(input_string)
+    return tokens
+
 def label_tokens1(input_tokens, structure_tokens):
     """
     Labels the input text based on a structured representation and a list of attributes.
@@ -214,6 +227,34 @@ def label_complete_input (input_list, structure_text1_list, structure_text2_list
     return labeled_output1, labeled_output2, list_of_tokens
 
 
+def label_complete_input_bert (input_list, structure_text1_list, structure_text2_list):
+    """
+    It is a similar function to the previous one, but it takes inputs as lists of tokens instead of strings.
+
+    Args:
+        input_text: The raw input text.
+        structure_text1: The structured text containing attributes and their values. (train.TOP-DECOUPLED)
+        structure_text2: The structured text containing attributes and their values. (train.TOP)
+    
+    Returns:
+        2 lists of tuples where each token in the input text is paired with its corresponding label.
+        1 list of tokens for input text.
+    """
+    labeled_output1 = []
+    labeled_output2 = []
+    list_of_tokens = []
+    for text, struct1, struct2 in zip(input_list, structure_text1_list, structure_text2_list):
+        cleaned_text = clean_string(text)
+        input_tokens = tokenize_string_bert(cleaned_text)
+        list_of_tokens.append(input_tokens)
+        structure1_tokens = tokenize_string_bert(struct1)
+        _, labels = label_tokens1(input_tokens, structure1_tokens)
+        labeled_output1.append(labels)
+        structure2_tokens = tokenize_string_bert(struct2)
+        _, labels = label_tokens2(input_tokens, structure2_tokens)
+        labeled_output2.append(labels)
+    return labeled_output1, labeled_output2, list_of_tokens
+
 def get_train_dataset(data):
     """
     Builds a training corpus from a JSON-like dataset.
@@ -354,6 +395,29 @@ def label_complete_dev (input_list, structure_text_list):
         labeled_output.append(labels)
     return labeled_output, list_of_tokens
 
+def label_complete_dev_bert (input_list, structure_text_list):
+    """
+    This function is used for labeling the development data.
+
+    Args:
+        input_list: The raw input text.
+        structure_text1: The structured text containing attributes and their values. (dev.TOP)
+    
+    Returns:
+        1 list of tuples where each token in the input text is paired with its corresponding label.
+        1 list of tokens for input text.
+    """
+    labeled_output = []
+    list_of_tokens = []
+    for text, struct in zip(input_list, structure_text_list):
+        cleaned_text = clean_string(text)
+        input_tokens = tokenize_string_bert(cleaned_text)
+        list_of_tokens.append(input_tokens)
+        structure1_tokens = tokenize_string_bert(struct)
+        _, labels = label_tokens_dev(input_tokens, structure1_tokens)
+        labeled_output.append(labels)
+    return labeled_output, list_of_tokens
+
 def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
     """
     Calculates the accuracy of the model.
@@ -379,6 +443,7 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
             print("Sentence:", corpus[i])
             print("Pred:", model_out[i])
             print("True:", gold_labels[i])
+            print("-------------------------------------------------")
 
     correct = 0
     total = 0
