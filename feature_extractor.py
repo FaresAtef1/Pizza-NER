@@ -72,7 +72,8 @@ def train_gensim_fastext_model(tokenized_sentences, embedding_size):
         vector_size=embedding_size,
         window=WINDOW_SIZE,
         min_count=CUTOFF_FREQ,
-        workers=THREADS,
+        # workers=THREADS,
+        epochs= EPOCHS
     )
     return model
 

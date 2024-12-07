@@ -384,16 +384,19 @@ def label_complete_dev (input_list, structure_text_list):
         1 list of tuples where each token in the input text is paired with its corresponding label.
         1 list of tokens for input text.
     """
-    labeled_output = []
+    ner_labeled_output = []
+    is_labeled_output = []
     list_of_tokens = []
     for text, struct in zip(input_list, structure_text_list):
         cleaned_text = clean_string(text)
         input_tokens = tokenize_string(cleaned_text)
         list_of_tokens.append(input_tokens)
         structure1_tokens = tokenize_string(struct)
-        _, labels = label_tokens_dev(input_tokens, structure1_tokens)
-        labeled_output.append(labels)
-    return labeled_output, list_of_tokens
+        _, ner_labels = label_tokens_dev(input_tokens, structure1_tokens)
+        ner_labeled_output.append(ner_labels)
+        _,is_labels = label_tokens2(input_tokens, structure1_tokens)
+        is_labeled_output.append(is_labels)
+    return ner_labeled_output,is_labeled_output, list_of_tokens
 
 def label_complete_dev_bert (input_list, structure_text_list):
     """
