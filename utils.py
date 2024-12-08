@@ -421,6 +421,44 @@ def label_complete_dev_bert (input_list, structure_text_list):
         labeled_output.append(labels)
     return labeled_output, list_of_tokens
 
+def intent_post_processing(corpus, model_out):
+    for out in model_out:
+        for i, label in enumerate(out):
+            if i ==0 and out[i] == 3:
+                if i+1 < len(out) and  out[i+1] in [4,6]:
+                    print("1- In sentence", corpus[i], "from", out[i], "to 6")
+                    out[i] = 6
+                elif i+1 < len(out) and  out[i+1] == 2:
+                    print("2- In sentence", corpus[i], "from", out[i], "to 5")                    
+                    out[i] = 5
+                elif i+1 < len(out) and  out[i+1] == 1:
+                    print("3- In sentence", corpus[i], "from", out[i], "to 4")
+                    out[i] = 4  
+            if i>0 and i < len(out)-1:
+                if out[i-1] == out[i+1] and out[i-1]==0 and out[i] not in [3,0]:
+                    print("4- In sentence", corpus[i], "from", out[i], "to", out[i-1])
+                    out[i] = out[i-1]
+                elif out[i-1] == out[i+1] and out[i-1]==1 and out[i] not in [4,1]:
+                    print("5- In sentence", corpus[i], "from", out[i], "to", out[i-1])
+                    out[i] = out[i-1]
+                elif out[i-1] == out[i+1] and out[i-1]==2 and out[i] not in [5,2]:
+                    print("6- In sentence", corpus[i], "from", out[i], "to", out[i-1])
+                    out[i] = out[i-1]
+                elif out[i-1] == out[i+1] and out[i-1]==3 and out[i] != 0:
+                    print("7- In sentence", corpus[i], "from", out[i], "to 0")
+                    out[i] = 0
+                elif out[i-1] == out[i+1] and out[i-1]==5 and out[i] != 2:
+                    print("8- In sentence", corpus[i], "from", out[i], "to 2")
+                    out[i] = 2
+                elif out[i-1] == out[i+1] and out[i-1]==6 and out[i] not in [4, 6]:
+                    print("9- In sentence", corpus[i], "from", out[i], "to 6")
+                    out[i] = 6
+                elif label == 6:
+                    if i+1 < len(out) and out[i+1] == 5:
+                        print("10- In sentence", corpus[i], "from", out[i], "to 0")
+                        out[i] = 0
+    return model_out                
+
 def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
     """
     Calculates the accuracy of the model.
@@ -431,10 +469,12 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
 
     Returns:
         Confusion matrix
-        The accuracy of the model.
+        The accuracy of the model
+        The exact match accuracy
     """
     confusion_matrix = [[0 for i in range(NUM_CLASSES)] for j in range(NUM_CLASSES)]
     # each row in model_out is a sequence of labels for a sentence, loop over all sequences and for each sequence loop over all labels
+    exat_match = 0
     for i in range(len(model_out)):
         do_print = False
         for j in range(len(model_out[i])):
@@ -443,6 +483,7 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
                 do_print = True
                 print("Wrong prediction in", i, "th sentence at", j, "th token")
         if do_print:
+            exat_match += 1
             print("Sentence:", corpus[i])
             print("Pred:", model_out[i])
             print("True:", gold_labels[i])
@@ -455,4 +496,4 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
             if i == j:
                 correct += confusion_matrix[i][j]
             total += confusion_matrix[i][j]
-    return confusion_matrix, 1.0*correct / total
+    return confusion_matrix, 1.0*correct / total, exat_match/len(model_out)
