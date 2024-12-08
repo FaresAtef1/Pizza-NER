@@ -496,4 +496,4 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
             if i == j:
                 correct += confusion_matrix[i][j]
             total += confusion_matrix[i][j]
-    return confusion_matrix, 1.0*correct / total, exat_match/len(model_out)
+    return confusion_matrix, 1.0*correct / total, (len(model_out)-exat_match)/len(model_out)
