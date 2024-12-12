@@ -1,14 +1,12 @@
-from gensim.models import Word2Vec, FastText  # For Word2Vec model
-import gensim  # General Gensim utilities
-import nltk  # For tokenization and natural language processing
-from transformers import BertTokenizer, BertModel  # BERT tokenizer and model
-import torch  # For PyTorch tensors and operations
+from gensim.models import Word2Vec, FastText
+import gensim
+import nltk
+from transformers import BertTokenizer, BertModel
+import torch
 from sklearn.preprocessing import OneHotEncoder
 import numpy as np
-import utils
 import gensim.downloader
 
-# Hyperparameters for the Word2Vec model
 WINDOW_SIZE = 5  # Context window size
 THREADS = 4  # Number of threads to use for training
 CUTOFF_FREQ = 1  # Minimum frequency for a word to be included in vocabulary
@@ -107,6 +105,7 @@ def embed_gensim(model, word):
     """
     Retrieves the word embedding for a given word using a trained Gensim model.
     Works for both w2v and fastext.
+
     Args:
         model: Trained Gensim Word2Vec model.
         word: Word to retrieve the embedding for.
@@ -135,95 +134,127 @@ def init_bert():
     return model, tokenizer
 
 
-def bert_text_preparation(text, tokenizer):
+# def bert_text_preparation(text, tokenizer):
+#     """
+#     Prepares text for processing by the BERT model.
+
+#     Args:
+#         text: Input text as a string.
+#         tokenizer: BERT tokenizer.
+
+#     Returns:
+#         Tuple containing:
+#             - Tokenized text as a list of tokens.
+#             - Tokens tensor for input to the BERT model.
+#             - Segment tensors for input to the BERT model.
+#     """
+#     marked_text = "[CLS] " + text + " [SEP]"
+#     tokenized_text = tokenizer.tokenize(marked_text)
+#     indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
+#     segments_ids = [1] * len(indexed_tokens)
+#     tokens_tensor = torch.tensor([indexed_tokens])
+#     segments_tensors = torch.tensor([segments_ids])
+#     return tokenized_text, tokens_tensor, segments_tensors
+
+# def bert_word_preparation(text, tokenizer):
+#     """
+#     Prepares text for processing by the BERT model.
+
+#     Args:
+#         text: Input text as a string.
+#         tokenizer: BERT tokenizer.
+
+#     Returns:
+#         Tuple containing:
+#             - Tokenized text as a list of tokens.
+#             - Tokens tensor for input to the BERT model.
+#             - Segment tensors for input to the BERT model.
+#     """
+#     marked_text = text
+#     tokenized_text = tokenizer.tokenize(marked_text)
+#     return tokenized_text
+
+# def get_bert_embeddings(tokens_tensor, segments_tensors, model):
+#     """
+#     Retrieves token embeddings from a BERT model.
+
+#     Args:
+#         tokens_tensor: Tensor containing token indices.
+#         segments_tensors: Tensor containing segment IDs.
+#         model: BERT model.
+
+#     Returns:
+#         List of token embeddings as vectors.
+#     """
+#     with torch.no_grad():
+#         outputs = model(tokens_tensor, segments_tensors)
+#         hidden_states = outputs.hidden_states
+#     token_embeddings = hidden_states[-1]
+#     token_embeddings = torch.squeeze(token_embeddings, dim=0)
+#     list_token_embeddings = [token_embed.tolist() for token_embed in token_embeddings]
+#     return list_token_embeddings
+
+
+# def get_word_bert_embedding(word, text, tokenizer, model):
+#     """
+#     Retrieves the embedding for a specific word in a given text using BERT.
+
+#     Args:
+#         word: Target word as a string.
+#         text: Text containing the target word.
+#         tokenizer: BERT tokenizer.
+#         model: BERT model.
+
+#     Returns:
+#         Embedding vector for the target word.
+#     """
+#     tokenized_text, tokens_tensor, segments_tensors = bert_text_preparation(text, tokenizer)
+#     tokenized_word = tokenizer.tokenize(word)  # Tokenize the target word
+#     list_text_embeddings = get_bert_embeddings(tokens_tensor, segments_tensors, model)
+#     tok_indexes = [i for i, tok in enumerate(tokenized_text) if tok in tokenized_word]
+
+#     # if not tok_indexes:
+#     #     raise ValueError(f"Word '{word}' not found in tokenized text.")
+
+#     tok_embeddings = [list_text_embeddings[i] for i in tok_indexes]
+#     average_embedding = np.mean(tok_embeddings, axis=0)
+#     return average_embedding
+
+def get_embedding_bert(word, text, model, tokenizer):
     """
-    Prepares text for processing by the BERT model.
+    Retrieves the embedding for a given word in text using BERT.
 
     Args:
-        text: Input text as a string.
-        tokenizer: BERT tokenizer.
-
-    Returns:
-        Tuple containing:
-            - Tokenized text as a list of tokens.
-            - Tokens tensor for input to the BERT model.
-            - Segment tensors for input to the BERT model.
-    """
-    marked_text = "[CLS] " + text + " [SEP]"
-    tokenized_text = tokenizer.tokenize(marked_text)
-    indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
-    segments_ids = [1] * len(indexed_tokens)
-    tokens_tensor = torch.tensor([indexed_tokens])
-    segments_tensors = torch.tensor([segments_ids])
-    return tokenized_text, tokens_tensor, segments_tensors
-
-def bert_word_preparation(text, tokenizer):
-    """
-    Prepares text for processing by the BERT model.
-
-    Args:
-        text: Input text as a string.
-        tokenizer: BERT tokenizer.
-
-    Returns:
-        Tuple containing:
-            - Tokenized text as a list of tokens.
-            - Tokens tensor for input to the BERT model.
-            - Segment tensors for input to the BERT model.
-    """
-    marked_text = text
-    tokenized_text = tokenizer.tokenize(marked_text)
-    return tokenized_text
-
-def get_bert_embeddings(tokens_tensor, segments_tensors, model):
-    """
-    Retrieves token embeddings from a BERT model.
-
-    Args:
-        tokens_tensor: Tensor containing token indices.
-        segments_tensors: Tensor containing segment IDs.
+        word: Word to retrieve the embedding for.
+        text: Text containing the word.
         model: BERT model.
+        tokenizer: BERT tokenizer.
 
     Returns:
-        List of token embeddings as vectors.
+        Embedding vector for the word.
     """
+    encoding = tokenizer.batch_encode_plus( [text],
+        padding=True,
+        truncation=True,
+        return_tensors='pt',
+        add_special_tokens=True
+    )
+    input_ids = encoding['input_ids']
+    attention_mask = encoding['attention_mask']
+    tokenized_text = tokenizer.convert_ids_to_tokens(input_ids[0]) 
+
+    tokenized_word = tokenizer.tokenize(word)
+    word_indices = [
+        i for i, token in enumerate(tokenized_text)
+        if token in tokenized_word
+    ]
     with torch.no_grad():
-        outputs = model(tokens_tensor, segments_tensors)
-        hidden_states = outputs[2][1:]
-    token_embeddings = hidden_states[-1]
-    token_embeddings = torch.squeeze(token_embeddings, dim=0)
-    list_token_embeddings = [token_embed.tolist() for token_embed in token_embeddings]
-    return list_token_embeddings
+        outputs = model(input_ids, attention_mask=attention_mask)
+        word_embeddings = outputs.last_hidden_state
+    word_token_embeddings = word_embeddings[0][word_indices]
 
-
-def get_word_bert_embedding(word, text, tokenizer, model):
-    """
-    Retrieves the embedding for a specific word in a given text using BERT.
-
-    Args:
-        word: Target word as a string.
-        text: Text containing the target word.
-        tokenizer: BERT tokenizer.
-        model: BERT model.
-
-    Returns:
-        Embedding vector for the target word.
-    """
-    tokenized_text, tokens_tensor, segments_tensors = bert_text_preparation(text, tokenizer)
-    tokenized_word= bert_word_preparation(word, tokenizer)
-    tok_embeddings = [] 
-    list_text_embeddings = get_bert_embeddings(tokens_tensor, segments_tensors, model)
-    for tok in tokenized_word:
-        tok_indedx = tokenized_text.index(tok)
-        tok_embedding = list_text_embeddings[tok_indedx]
-        tok_embeddings.append(tok_embedding)
-    average_embedding = np.mean(tok_embeddings, axis=0)
-    return average_embedding
+    word_embedding = torch.mean(word_token_embeddings, dim=0)
+    return word_embedding.numpy()
 
 # model, tokenizer = init_bert()
-# emb1 = get_word_bert_embedding("pepsi", "i want to get two medium ham pizzas with one large pepsi.", tokenizer, model)
-# emb2 = get_word_bert_embedding("coke", "lets get one coke five med diet coke and three pepsi in all", tokenizer, model)
-
-# from sklearn.metrics.pairwise import cosine_similarity
-# similarity = cosine_similarity([emb1], [emb2])
-# print(similarity[0][0])
+# print(get_embedding_bert("Hello","Hello, world!", model, tokenizer))

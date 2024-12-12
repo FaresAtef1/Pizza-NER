@@ -1,4 +1,3 @@
-# in this notebook we will do some preprocessing on the data and tokenization
 import re
 import nltk
 import json
@@ -16,11 +15,9 @@ def clean_string(input_string):
     Returns:
         The cleaned string.
     """
-    # Remove special characters and unnecessary punctuation
     # TODO: Add more special characters as needed to be excluded
     cleaned_string = re.sub(r"[^\w\s'\-,.]", " ", input_string)
     cleaned_string = cleaned_string.lower()
-    # Remove extra whitespace
     cleaned_string = re.sub(r"\s+", " ", cleaned_string).strip()
     return cleaned_string
 
@@ -151,6 +148,8 @@ def label_tokens2(input_tokens, structure_tokens):
             parentheses -= 1
             if parentheses == 1:
                 curr = "NONE"
+            elif parentheses == 2 and curr == "COMPLEX_TOPPING":
+                curr = "PIZZAORDER"
         elif token not in execluded:
             if curr == "NONE":
                 labels_mapping.append((token,curr))
@@ -381,7 +380,8 @@ def label_complete_dev (input_list, structure_text_list):
         structure_text1: The structured text containing attributes and their values. (dev.TOP)
     
     Returns:
-        1 list of tuples where each token in the input text is paired with its corresponding label.
+        1 list of NER labels.
+        1 list of IS labels.
         1 list of tokens for input text.
     """
     ner_labeled_output = []
@@ -410,16 +410,19 @@ def label_complete_dev_bert (input_list, structure_text_list):
         1 list of tuples where each token in the input text is paired with its corresponding label.
         1 list of tokens for input text.
     """
-    labeled_output = []
+    ner_labeled_output = []
+    is_labeled_output = []
     list_of_tokens = []
     for text, struct in zip(input_list, structure_text_list):
         cleaned_text = clean_string(text)
         input_tokens = tokenize_string_bert(cleaned_text)
         list_of_tokens.append(input_tokens)
         structure1_tokens = tokenize_string_bert(struct)
-        _, labels = label_tokens_dev(input_tokens, structure1_tokens)
-        labeled_output.append(labels)
-    return labeled_output, list_of_tokens
+        _, ner_labels = label_tokens_dev(input_tokens, structure1_tokens)
+        ner_labeled_output.append(ner_labels)
+        _,is_labels = label_tokens2(input_tokens, structure1_tokens)
+        is_labeled_output.append(is_labels)
+    return ner_labeled_output,is_labeled_output, list_of_tokens
 
 def intent_post_processing(corpus, model_out):
     for out in model_out:
@@ -497,3 +500,154 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
                 correct += confusion_matrix[i][j]
             total += confusion_matrix[i][j]
     return confusion_matrix, 1.0*correct / total, (len(model_out)-exat_match)/len(model_out)
+
+# entity_to_num = {"I_NUMBER": 0, "I_SIZE": 1, "I_TOPPING": 2, "I_STYLE": 3, "I_DRINKTYPE": 4, "I_CONTAINERTYPE": 5, "I_VOLUME": 6, "I_QUANTITY": 7, "B_NUMBER": 8,
+# "B_SIZE": 9, "B_TOPPING": 10, "B_STYLE": 11, "B_DRINKTYPE": 12, "B_CONTAINERTYPE": 13, "B_VOLUME": 14, "B_QUANTITY": 15, "I_NOT_TOPPING": 16, "B_NOT_TOPPING": 17,
+# "I_NOT_STYLE": 18, "B_NOT_STYLE": 19, "B_NOT_QUANTITY": 20, "I_NOT_QUANTITY": 21, "NONE": 22}
+# intent_to_num = {"I_PIZZAORDER": 0, "I_DRINKORDER": 1, "I_COMPLEX_TOPPING": 2, "B_PIZZAORDER": 3, "B_DRINKORDER": 4, "B_COMPLEX_TOPPING": 5, "NONE": 6}
+
+def convert_to_json (input_tokens, entity_labels, intent_labels):
+    json_map = {"ORDER":{"PIZZA_ORDER":[], "DRINK_ORDER":[]}}
+    empty_pizza_order = {"AllTopping":[]}
+    empty_drink_order = {}
+    curr_pizza_order = {"AllTopping":[]}
+    curr_drink_order = {}
+    input_size = len(input_tokens)
+    i = 0
+    while(i<input_size):
+        if intent_labels[i] == 3:
+            if curr_pizza_order != empty_pizza_order:
+                if curr_pizza_order.get("NUMBER") == None:
+                    curr_pizza_order["NUMBER"] = "one"
+                json_map["ORDER"]["PIZZA_ORDER"].append(curr_pizza_order)
+            curr_pizza_order={"AllTopping":[]}
+        elif intent_labels[i]== 4:
+            if curr_drink_order != empty_drink_order:
+                if curr_drink_order.get("NUMBER") == None:
+                    curr_drink_order["NUMBER"] = "one"
+                json_map["ORDER"]["DRINK_ORDER"].append(curr_drink_order)
+            curr_drink_order = {}
+        if intent_labels[i] == 5:
+            curr_topping = {"NOT":False, "Quantity":None}
+            beg = True
+            while i<input_size and (intent_labels[i] == 2  or (beg and intent_labels[i] == 5)):
+                beg = False
+                if entity_labels[i] == 15:
+                    quantity = input_tokens[i]
+                    while i+1<input_size and entity_labels[i+1] == 7:
+                        i+=1
+                        quantity += " " + input_tokens[i]
+                    curr_topping["Quantity"] = quantity
+                elif entity_labels[i] == 20:
+                    curr_topping["NOT"] = True
+                    quantity = input_tokens[i]
+                    while i+1<input_size and entity_labels[i+1] == 21:
+                        i+=1
+                        quantity += " " + input_tokens[i]
+                    curr_topping["Quantity"] = quantity
+                if entity_labels[i] == 10:
+                    topping = input_tokens[i]
+                    while i+1<input_size and entity_labels[i+1] == 2:
+                        i+=1
+                        topping += " " + input_tokens[i]
+                    curr_topping["Topping"] = topping
+                elif entity_labels[i] == 17:
+                    curr_topping["NOT"] = True
+                    topping = input_tokens[i]
+                    while i+1<input_size and entity_labels[i+1] == 16:
+                        i+=1
+                        topping += " " + input_tokens[i]
+                    curr_topping["Topping"] = topping
+                i+=1
+
+            curr_pizza_order["AllTopping"].append(curr_topping)
+            continue
+
+        # this may happen, if the complex topping is the last part of the order
+        if i >= input_size:
+            break
+            
+        if entity_labels[i]==8:
+            curr_number = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==0):
+                i+=1
+                curr_number += " " + input_tokens[i]
+            if curr_number == "a":
+                curr_number = "one"
+            if intent_labels[i] in [3,0]:
+                curr_pizza_order["NUMBER"] = curr_number
+            else:
+                curr_drink_order["NUMBER"] = curr_number
+        elif entity_labels[i]==9:
+            curr_size = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==1):
+                i+=1
+                curr_size += " " + input_tokens[i]
+            if intent_labels[i] in [3,0]:
+                curr_pizza_order["SIZE"] = curr_size
+            else:
+                curr_drink_order["SIZE"] = curr_size
+        elif entity_labels[i]==10:
+            curr_topping = {"NOT":False, "Quantity":None}
+            topping = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==2):
+                i+=1
+                topping+=" " + input_tokens[i]
+            curr_topping["Topping"] = topping
+            curr_pizza_order["AllTopping"].append(curr_topping)
+        elif entity_labels[i]==11:
+            curr_style = {"NOT":False, "Style":None}
+            curr_style["Style"] = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==3):
+                i+=1
+                curr_style["Style"] += " " + input_tokens[i]
+            curr_pizza_order["STYLE"] = curr_style
+        elif entity_labels[i]==19:
+            curr_style = {"NOT":True, "Style":None}
+            curr_style["Style"] = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==18):
+                i+=1
+                curr_style["Style"] += " " + input_tokens[i]
+            curr_pizza_order["STYLE"] = curr_style
+        elif entity_labels[i]==17:
+            curr_topping = {"NOT":True, "Quantity":None}
+            topping = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==16):
+                i+=1
+                topping+=" " + input_tokens[i]
+            curr_topping["Topping"] = topping
+            curr_pizza_order["AllTopping"].append(curr_topping)
+        elif entity_labels[i]==12:
+            curr_drink_order["DRINKTYPE"] = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==4):
+                i+=1
+                curr_drink_order["DRINKTYPE"] += " " + input_tokens[i]
+        elif entity_labels[i]==13:
+            curr_drink_order["CONTAINERTYPE"] = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==5):
+                i+=1
+                curr_drink_order["CONTAINERTYPE"] += " " + input_tokens[i]
+        elif entity_labels[i]==14:
+            curr_drink_order["VOLUME"] = input_tokens[i]
+            while(i+1<input_size and entity_labels[i+1]==6):
+                i+=1
+                curr_drink_order["VOLUME"] += " " + input_tokens[i]
+        i += 1
+    if curr_pizza_order != empty_pizza_order:
+        if curr_pizza_order.get("NUMBER") == None:
+            curr_pizza_order["NUMBER"] = "one"
+        json_map["ORDER"]["PIZZA_ORDER"].append(curr_pizza_order)
+    if curr_drink_order != empty_drink_order:
+        if curr_drink_order.get("NUMBER") == None:
+            curr_drink_order["NUMBER"] = "one"
+        json_map["ORDER"]["DRINK_ORDER"].append(curr_drink_order)
+    file_name = "output.json"
+    with(open(file_name,'w')) as json_file:
+        json.dump(json_map, json_file, indent=4)
+
+# src= "i want to order two medium pizzas with sausage and black olives and two medium pizzas with pepperoni and extra cheese and three large pizzas with pepperoni and sausage"
+# top= "(ORDER i want to order (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING sausage ) and (TOPPING black olives ) ) and (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING pepperoni ) and (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) and (PIZZAORDER (NUMBER three ) (SIZE large ) pizzas with (TOPPING pepperoni ) and (TOPPING sausage ) ) )"
+src = "i want a pizza with sausage bacon and no extra cheese"
+top = "(ORDER i want (PIZZAORDER (NUMBER a ) pizza with (TOPPING sausage ) (TOPPING bacon ) and no (NOT (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) ) )"
+ner_labeled_output,is_labeled_output, list_of_tokens=label_complete_dev([src], [top])
+convert_to_json(tokenize_string_bert(src), ner_labeled_output[0], is_labeled_output[0])

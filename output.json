@@ -1,0 +1,27 @@
+{
+    "ORDER": {
+        "PIZZA_ORDER": [
+            {
+                "AllTopping": [
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "sausage"
+                    },
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "bacon"
+                    },
+                    {
+                        "NOT": true,
+                        "Quantity": "extra",
+                        "Topping": "cheese"
+                    }
+                ],
+                "NUMBER": "one"
+            }
+        ],
+        "DRINK_ORDER": []
+    }
+}

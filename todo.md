@@ -1,6 +1,6 @@
-- [ ] Data Preprocessing: Data cleaning, Tokenization
-- [ ] Parse the raw dataset into a trainable structure (Create a map between the raw input and its corresponding label)
-- [ ] Map example:
+- [x] Data Preprocessing: Data cleaning, Tokenization
+- [x] Parse the raw dataset into a trainable structure (Create a map between the raw input and its corresponding label)
+- [x] Map example:
 ```js
 map = {
   "can": "none",
@@ -9,8 +9,8 @@ map = {
   "large": "SIZE"
 }
 ```
-- [ ] Extract features like word embeddings and contextual embeddings
-- [ ] Try different models like RNN, LSTM, BiLSTM, GRU 
-- [ ] Try different optimizers like Adam, SGD
-- [ ] Handle cases like "bbq pulled pork"
-- [ ] Handle Not
+- [x] Extract features like word embeddings and contextual embeddings
+- [x] Try different models like RNN, LSTM, BiLSTM, GRU 
+- [x] Try different optimizers like Adam, NAdam,SGD
+- [x] Handle cases like "bbq pulled pork"
+- [x] Handle Not
