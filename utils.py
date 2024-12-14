@@ -460,7 +460,62 @@ def intent_post_processing(corpus, model_out):
                     if i+1 < len(out) and out[i+1] == 5:
                         print("10- In sentence", corpus[i], "from", out[i], "to 0")
                         out[i] = 0
-    return model_out                
+    return model_out
+
+## only done if we need highr EM, it may decrease the word level accuracy
+def intent_post_processing_extra(corpus, model_out):
+    for out in model_out:
+        for i, label in enumerate(out):
+            if i>0:
+                if label == 0 and out[i-1] not in [0,3,2,5]:
+                    out[i] = 6
+    return model_out   
+
+## only done if we need highr EM, it may decrease the word level accuracy (pineapple case)
+# this function will use the entity model output to correct the intent model output
+def intent_post_processing2(intent_model_out, entity_model_out):
+    for i, entity_out in enumerate(entity_model_out):
+        for j,label in enumerate(entity_out):
+            if label == 0 or label==1:
+                if intent_model_out[i][j] not in [0,1]:
+                    if j>0 and intent_model_out[i][j-1] in [0,3]:
+                        intent_model_out[i][j-1]=0
+                    elif j>0 and intent_model_out[i][j-1] in [1,4]:
+                        intent_model_out[i][j-1]=1
+            if  label==3 or label==18:
+                intent_model_out[i][j]=0
+            if label == 4 or label == 5 or label==6:
+                intent_model_out[i][j]=1
+            if label==7 or label==21:
+                intent_model_out[i][j]=2
+
+            if label == 10 or label == 11:
+                if intent_model_out[i][j] not in [0,3,2,5]:
+                    intent_model_out[i][j]=0 # or 3
+
+            if label in [12,13,14]:
+                if intent_model_out[i][j] not in [1,4]:
+                    intent_model_out[i][j]=1 # or 4
+            
+            if label in [15, 20,21]:
+                if intent_model_out[i][j] not in [2,5]:
+                    intent_model_out[i][j]=2 # or 5 
+
+            if label in [16,17]:
+                if intent_model_out[i][j] not in [0,3,2,5]:
+                    intent_model_out[i][j]=0 # or 3 
+
+            if label in [18,19]:
+                if intent_model_out[i][j] not in [0,3]:
+                    intent_model_out[i][j]=0 # or 3 
+
+            if label ==9 or label == 8:
+                if intent_model_out[i][j] not in [0,1,3,4]:
+                    if j>0 and intent_model_out[i][j-1] in [0,3]:
+                        intent_model_out[i][j]=0
+                    elif j>0 and intent_model_out[i][j-1] in [1,4]:
+                        intent_model_out[i][j]=1
+    return intent_model_out
 
 def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
     """
@@ -500,11 +555,6 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
                 correct += confusion_matrix[i][j]
             total += confusion_matrix[i][j]
     return confusion_matrix, 1.0*correct / total, (len(model_out)-exat_match)/len(model_out)
-
-# entity_to_num = {"I_NUMBER": 0, "I_SIZE": 1, "I_TOPPING": 2, "I_STYLE": 3, "I_DRINKTYPE": 4, "I_CONTAINERTYPE": 5, "I_VOLUME": 6, "I_QUANTITY": 7, "B_NUMBER": 8,
-# "B_SIZE": 9, "B_TOPPING": 10, "B_STYLE": 11, "B_DRINKTYPE": 12, "B_CONTAINERTYPE": 13, "B_VOLUME": 14, "B_QUANTITY": 15, "I_NOT_TOPPING": 16, "B_NOT_TOPPING": 17,
-# "I_NOT_STYLE": 18, "B_NOT_STYLE": 19, "B_NOT_QUANTITY": 20, "I_NOT_QUANTITY": 21, "NONE": 22}
-# intent_to_num = {"I_PIZZAORDER": 0, "I_DRINKORDER": 1, "I_COMPLEX_TOPPING": 2, "B_PIZZAORDER": 3, "B_DRINKORDER": 4, "B_COMPLEX_TOPPING": 5, "NONE": 6}
 
 def convert_to_json (input_tokens, entity_labels, intent_labels):
     json_map = {"ORDER":{"PIZZA_ORDER":[], "DRINK_ORDER":[]}}
@@ -647,7 +697,7 @@ def convert_to_json (input_tokens, entity_labels, intent_labels):
 
 # src= "i want to order two medium pizzas with sausage and black olives and two medium pizzas with pepperoni and extra cheese and three large pizzas with pepperoni and sausage"
 # top= "(ORDER i want to order (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING sausage ) and (TOPPING black olives ) ) and (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING pepperoni ) and (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) and (PIZZAORDER (NUMBER three ) (SIZE large ) pizzas with (TOPPING pepperoni ) and (TOPPING sausage ) ) )"
-src = "i want a pizza with sausage bacon and no extra cheese"
-top = "(ORDER i want (PIZZAORDER (NUMBER a ) pizza with (TOPPING sausage ) (TOPPING bacon ) and no (NOT (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) ) )"
-ner_labeled_output,is_labeled_output, list_of_tokens=label_complete_dev([src], [top])
-convert_to_json(tokenize_string_bert(src), ner_labeled_output[0], is_labeled_output[0])
+# src = "i want a pizza with sausage bacon and no extra cheese"
+# top = "(ORDER i want (PIZZAORDER (NUMBER a ) pizza with (TOPPING sausage ) (TOPPING bacon ) and no (NOT (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) ) )"
+# ner_labeled_output,is_labeled_output, list_of_tokens=label_complete_dev([src], [top])
+# convert_to_json(tokenize_string_bert(src), ner_labeled_output[0], is_labeled_output[0])
