@@ -556,6 +556,27 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
             total += confusion_matrix[i][j]
     return confusion_matrix, 1.0*correct / total, (len(model_out)-exat_match)/len(model_out)
 
+def total_EM(ner_out, is_out, gold_ner, gold_is):
+    """
+    Calculates the exact match accuracy of the model.
+
+    Args:
+        ner_out: The predicted NER labels.
+        is_out: The predicted IS labels.
+        gold_ner: The true NER labels.
+        gold_is: The true IS labels.
+
+    Returns:
+        The exact match accuracy of the model
+    """
+    total = 0
+    correct = 0
+    for i in range(len(ner_out)):
+        if ner_out[i] == gold_ner[i] and is_out[i] == gold_is[i]:
+            correct += 1
+        total += 1
+    return 1.0*correct/total
+
 def convert_to_json (input_tokens, entity_labels, intent_labels):
     json_map = {"ORDER":{"PIZZA_ORDER":[], "DRINK_ORDER":[]}}
     empty_pizza_order = {"AllTopping":[]}
