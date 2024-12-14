@@ -1,0 +1,49 @@
+{
+    "ORDER": {
+        "PIZZA_ORDER": [
+            {
+                "AllTopping": [
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "italian sausage"
+                    }
+                ],
+                "NUMBER": "one",
+                "SIZE": "medium"
+            },
+            {
+                "AllTopping": [
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "beef"
+                    },
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "mushrooms"
+                    }
+                ],
+                "NUMBER": "one",
+                "SIZE": "small"
+            },
+            {
+                "AllTopping": [],
+                "NUMBER": "one",
+                "SIZE": "large",
+                "STYLE": {
+                    "NOT": false,
+                    "Style": "combination"
+                }
+            }
+        ],
+        "DRINK_ORDER": [
+            {
+                "NUMBER": "four",
+                "SIZE": "large",
+                "DRINKTYPE": "pepsis"
+            }
+        ]
+    }
+}

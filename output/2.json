@@ -1,0 +1,22 @@
+{
+    "ORDER": {
+        "PIZZA_ORDER": [
+            {
+                "AllTopping": [
+                    {
+                        "NOT": false,
+                        "Quantity": "extra",
+                        "Topping": "banana peppers"
+                    }
+                ],
+                "NUMBER": "one",
+                "SIZE": "large",
+                "STYLE": {
+                    "NOT": false,
+                    "Style": "vegetarian"
+                }
+            }
+        ],
+        "DRINK_ORDER": []
+    }
+}

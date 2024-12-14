@@ -1,0 +1,39 @@
+{
+    "ORDER": {
+        "PIZZA_ORDER": [
+            {
+                "AllTopping": [
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "ground beef"
+                    },
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "green peppers"
+                    },
+                    {
+                        "NOT": false,
+                        "Quantity": "extra",
+                        "Topping": "cheese"
+                    }
+                ],
+                "NUMBER": "one",
+                "SIZE": "large"
+            }
+        ],
+        "DRINK_ORDER": [
+            {
+                "NUMBER": "one",
+                "SIZE": "large",
+                "DRINKTYPE": "coke"
+            },
+            {
+                "NUMBER": "one",
+                "SIZE": "large",
+                "DRINKTYPE": "sprite"
+            }
+        ]
+    }
+}

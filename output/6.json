@@ -1,0 +1,27 @@
+{
+    "ORDER": {
+        "PIZZA_ORDER": [
+            {
+                "AllTopping": [
+                    {
+                        "NOT": false,
+                        "Quantity": null,
+                        "Topping": "tuna"
+                    },
+                    {
+                        "NOT": true,
+                        "Quantity": null,
+                        "Topping": "pineapple"
+                    }
+                ],
+                "NUMBER": "one",
+                "STYLE": {
+                    "NOT": false,
+                    "Style": "thin crust"
+                },
+                "SIZE": "medium"
+            }
+        ],
+        "DRINK_ORDER": []
+    }
+}

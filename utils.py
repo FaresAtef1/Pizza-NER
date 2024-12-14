@@ -429,36 +429,26 @@ def intent_post_processing(corpus, model_out):
         for i, label in enumerate(out):
             if i ==0 and out[i] == 3:
                 if i+1 < len(out) and  out[i+1] in [4,6]:
-                    print("1- In sentence", corpus[i], "from", out[i], "to 6")
                     out[i] = 6
                 elif i+1 < len(out) and  out[i+1] == 2:
-                    print("2- In sentence", corpus[i], "from", out[i], "to 5")                    
                     out[i] = 5
                 elif i+1 < len(out) and  out[i+1] == 1:
-                    print("3- In sentence", corpus[i], "from", out[i], "to 4")
                     out[i] = 4  
             if i>0 and i < len(out)-1:
                 if out[i-1] == out[i+1] and out[i-1]==0 and out[i] not in [3,0]:
-                    print("4- In sentence", corpus[i], "from", out[i], "to", out[i-1])
                     out[i] = out[i-1]
                 elif out[i-1] == out[i+1] and out[i-1]==1 and out[i] not in [4,1]:
-                    print("5- In sentence", corpus[i], "from", out[i], "to", out[i-1])
                     out[i] = out[i-1]
                 elif out[i-1] == out[i+1] and out[i-1]==2 and out[i] not in [5,2]:
-                    print("6- In sentence", corpus[i], "from", out[i], "to", out[i-1])
                     out[i] = out[i-1]
                 elif out[i-1] == out[i+1] and out[i-1]==3 and out[i] != 0:
-                    print("7- In sentence", corpus[i], "from", out[i], "to 0")
                     out[i] = 0
                 elif out[i-1] == out[i+1] and out[i-1]==5 and out[i] != 2:
-                    print("8- In sentence", corpus[i], "from", out[i], "to 2")
                     out[i] = 2
                 elif out[i-1] == out[i+1] and out[i-1]==6 and out[i] not in [4, 6]:
-                    print("9- In sentence", corpus[i], "from", out[i], "to 6")
                     out[i] = 6
                 elif label == 6:
                     if i+1 < len(out) and out[i+1] == 5:
-                        print("10- In sentence", corpus[i], "from", out[i], "to 0")
                         out[i] = 0
     return model_out
 
@@ -531,7 +521,6 @@ def calc_accuracy(corpus, model_out, gold_labels, NUM_CLASSES=23):
         The exact match accuracy
     """
     confusion_matrix = [[0 for i in range(NUM_CLASSES)] for j in range(NUM_CLASSES)]
-    # each row in model_out is a sequence of labels for a sentence, loop over all sequences and for each sequence loop over all labels
     exat_match = 0
     for i in range(len(model_out)):
         do_print = False
@@ -577,7 +566,7 @@ def total_EM(ner_out, is_out, gold_ner, gold_is):
         total += 1
     return 1.0*correct/total
 
-def convert_to_json (input_tokens, entity_labels, intent_labels):
+def convert_to_json (file_name,input_tokens, entity_labels, intent_labels):
     json_map = {"ORDER":{"PIZZA_ORDER":[], "DRINK_ORDER":[]}}
     empty_pizza_order = {"AllTopping":[]}
     empty_drink_order = {}
@@ -712,9 +701,28 @@ def convert_to_json (input_tokens, entity_labels, intent_labels):
         if curr_drink_order.get("NUMBER") == None:
             curr_drink_order["NUMBER"] = "one"
         json_map["ORDER"]["DRINK_ORDER"].append(curr_drink_order)
-    file_name = "output.json"
     with(open(file_name,'w')) as json_file:
         json.dump(json_map, json_file, indent=4)
+
+def validate_json(file_path):
+    """
+    Validates if a JSON file is valid.
+    
+    Args:
+        file_path (str): Path to the JSON file.
+        
+    Returns:
+        bool: True if the JSON is valid, False otherwise.
+    """
+    try:
+        with open(file_path, 'r') as file:
+            json.load(file)
+        print(f"The file '{file_path}' contains valid JSON.")
+        return True
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"Error: The file '{file_path}' is not valid JSON or does not exist.")
+        print(f"Details: {e}")
+        return False
 
 # src= "i want to order two medium pizzas with sausage and black olives and two medium pizzas with pepperoni and extra cheese and three large pizzas with pepperoni and sausage"
 # top= "(ORDER i want to order (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING sausage ) and (TOPPING black olives ) ) and (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING pepperoni ) and (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) and (PIZZAORDER (NUMBER three ) (SIZE large ) pizzas with (TOPPING pepperoni ) and (TOPPING sausage ) ) )"
