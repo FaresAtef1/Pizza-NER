@@ -16,7 +16,7 @@ def clean_string(input_string):
         The cleaned string.
     """
     # TODO: Add more special characters as needed to be excluded
-    cleaned_string = re.sub(r"[^\w\s'\-,.]", " ", input_string)
+    cleaned_string = re.sub(r"[^\w\s'\-,.:]", " ", input_string)
     cleaned_string = cleaned_string.lower()
     cleaned_string = re.sub(r"\s+", " ", cleaned_string).strip()
     return cleaned_string
@@ -424,7 +424,7 @@ def label_complete_dev_bert (input_list, structure_text_list):
         is_labeled_output.append(is_labels)
     return ner_labeled_output,is_labeled_output, list_of_tokens
 
-def intent_post_processing(corpus, model_out):
+def intent_post_processing(model_out):
     for out in model_out:
         for i, label in enumerate(out):
             if i ==0 and out[i] == 3:
@@ -447,13 +447,13 @@ def intent_post_processing(corpus, model_out):
                     out[i] = 2
                 elif out[i-1] == out[i+1] and out[i-1]==6 and out[i] not in [4, 6]:
                     out[i] = 6
-                elif label == 6:
-                    if i+1 < len(out) and out[i+1] == 5:
-                        out[i] = 0
+                # elif label == 6: ###### check this
+                #     if i+1 < len(out) and out[i+1] == 5:
+                #         out[i] = 0
     return model_out
 
 ## only done if we need highr EM, it may decrease the word level accuracy
-def intent_post_processing_extra(corpus, model_out):
+def intent_post_processing_extra(model_out):
     for out in model_out:
         for i, label in enumerate(out):
             if i>0:
@@ -567,28 +567,24 @@ def total_EM(ner_out, is_out, gold_ner, gold_is):
     return 1.0*correct/total
 
 def convert_to_json (file_name,input_tokens, entity_labels, intent_labels):
-    json_map = {"ORDER":{"PIZZA_ORDER":[], "DRINK_ORDER":[]}}
-    empty_pizza_order = {"AllTopping":[]}
+    json_map = {"ORDER":{"PIZZAORDER":[], "DRINKORDER":[]}}
+    empty_pizza_order = {"ALLTOPPING":[], "STYLE":[]}
     empty_drink_order = {}
-    curr_pizza_order = {"AllTopping":[]}
+    curr_pizza_order = {"ALLTOPPING":[], "STYLE":[]}
     curr_drink_order = {}
     input_size = len(input_tokens)
     i = 0
     while(i<input_size):
         if intent_labels[i] == 3:
             if curr_pizza_order != empty_pizza_order:
-                if curr_pizza_order.get("NUMBER") == None:
-                    curr_pizza_order["NUMBER"] = "one"
-                json_map["ORDER"]["PIZZA_ORDER"].append(curr_pizza_order)
-            curr_pizza_order={"AllTopping":[]}
+                json_map["ORDER"]["PIZZAORDER"].append(curr_pizza_order)
+            curr_pizza_order={"ALLTOPPING":[], "STYLE":[]}
         elif intent_labels[i]== 4:
             if curr_drink_order != empty_drink_order:
-                if curr_drink_order.get("NUMBER") == None:
-                    curr_drink_order["NUMBER"] = "one"
-                json_map["ORDER"]["DRINK_ORDER"].append(curr_drink_order)
+                json_map["ORDER"]["DRINKORDER"].append(curr_drink_order)
             curr_drink_order = {}
         if intent_labels[i] == 5:
-            curr_topping = {"NOT":False, "Quantity":None}
+            curr_topping = {"NOT":False, "QUANTITY":None}
             beg = True
             while i<input_size and (intent_labels[i] == 2  or (beg and intent_labels[i] == 5)):
                 beg = False
@@ -597,30 +593,30 @@ def convert_to_json (file_name,input_tokens, entity_labels, intent_labels):
                     while i+1<input_size and entity_labels[i+1] == 7:
                         i+=1
                         quantity += " " + input_tokens[i]
-                    curr_topping["Quantity"] = quantity
+                    curr_topping["QUANTITY"] = quantity
                 elif entity_labels[i] == 20:
                     curr_topping["NOT"] = True
                     quantity = input_tokens[i]
                     while i+1<input_size and entity_labels[i+1] == 21:
                         i+=1
                         quantity += " " + input_tokens[i]
-                    curr_topping["Quantity"] = quantity
+                    curr_topping["QUANTITY"] = quantity
                 if entity_labels[i] == 10:
                     topping = input_tokens[i]
                     while i+1<input_size and entity_labels[i+1] == 2:
                         i+=1
                         topping += " " + input_tokens[i]
-                    curr_topping["Topping"] = topping
+                    curr_topping["TOPPING"] = topping
                 elif entity_labels[i] == 17:
                     curr_topping["NOT"] = True
                     topping = input_tokens[i]
                     while i+1<input_size and entity_labels[i+1] == 16:
                         i+=1
                         topping += " " + input_tokens[i]
-                    curr_topping["Topping"] = topping
+                    curr_topping["TOPPING"] = topping
                 i+=1
 
-            curr_pizza_order["AllTopping"].append(curr_topping)
+            curr_pizza_order["ALLTOPPING"].append(curr_topping)
             continue
 
         # this may happen, if the complex topping is the last part of the order
@@ -632,8 +628,7 @@ def convert_to_json (file_name,input_tokens, entity_labels, intent_labels):
             while(i+1<input_size and entity_labels[i+1]==0):
                 i+=1
                 curr_number += " " + input_tokens[i]
-            if curr_number == "a":
-                curr_number = "one"
+
             if intent_labels[i] in [3,0]:
                 curr_pizza_order["NUMBER"] = curr_number
             else:
@@ -648,35 +643,35 @@ def convert_to_json (file_name,input_tokens, entity_labels, intent_labels):
             else:
                 curr_drink_order["SIZE"] = curr_size
         elif entity_labels[i]==10:
-            curr_topping = {"NOT":False, "Quantity":None}
+            curr_topping = {"NOT":False, "QUANTITY":None}
             topping = input_tokens[i]
             while(i+1<input_size and entity_labels[i+1]==2):
                 i+=1
                 topping+=" " + input_tokens[i]
-            curr_topping["Topping"] = topping
-            curr_pizza_order["AllTopping"].append(curr_topping)
+            curr_topping["TOPPING"] = topping
+            curr_pizza_order["ALLTOPPING"].append(curr_topping)
         elif entity_labels[i]==11:
-            curr_style = {"NOT":False, "Style":None}
-            curr_style["Style"] = input_tokens[i]
+            curr_style = {"NOT":False, "TYPE":None}
+            curr_style["TYPE"] = input_tokens[i]
             while(i+1<input_size and entity_labels[i+1]==3):
                 i+=1
-                curr_style["Style"] += " " + input_tokens[i]
-            curr_pizza_order["STYLE"] = curr_style
+                curr_style["TYPE"] += " " + input_tokens[i]
+            curr_pizza_order["STYLE"].append(curr_style)
         elif entity_labels[i]==19:
-            curr_style = {"NOT":True, "Style":None}
-            curr_style["Style"] = input_tokens[i]
+            curr_style = {"NOT":True, "TYPE":None}
+            curr_style["TYPE"] = input_tokens[i]
             while(i+1<input_size and entity_labels[i+1]==18):
                 i+=1
-                curr_style["Style"] += " " + input_tokens[i]
-            curr_pizza_order["STYLE"] = curr_style
+                curr_style["TYPE"] += " " + input_tokens[i]
+            curr_pizza_order["STYLE"].append(curr_style)
         elif entity_labels[i]==17:
-            curr_topping = {"NOT":True, "Quantity":None}
+            curr_topping = {"NOT":True, "QUANTITY":None}
             topping = input_tokens[i]
             while(i+1<input_size and entity_labels[i+1]==16):
                 i+=1
                 topping+=" " + input_tokens[i]
-            curr_topping["Topping"] = topping
-            curr_pizza_order["AllTopping"].append(curr_topping)
+            curr_topping["TOPPING"] = topping
+            curr_pizza_order["ALLTOPPING"].append(curr_topping)
         elif entity_labels[i]==12:
             curr_drink_order["DRINKTYPE"] = input_tokens[i]
             while(i+1<input_size and entity_labels[i+1]==4):
@@ -694,39 +689,62 @@ def convert_to_json (file_name,input_tokens, entity_labels, intent_labels):
                 curr_drink_order["VOLUME"] += " " + input_tokens[i]
         i += 1
     if curr_pizza_order != empty_pizza_order:
-        if curr_pizza_order.get("NUMBER") == None:
-            curr_pizza_order["NUMBER"] = "one"
-        json_map["ORDER"]["PIZZA_ORDER"].append(curr_pizza_order)
+        json_map["ORDER"]["PIZZAORDER"].append(curr_pizza_order)
     if curr_drink_order != empty_drink_order:
-        if curr_drink_order.get("NUMBER") == None:
-            curr_drink_order["NUMBER"] = "one"
-        json_map["ORDER"]["DRINK_ORDER"].append(curr_drink_order)
+        json_map["ORDER"]["DRINKORDER"].append(curr_drink_order)
     with(open(file_name,'w')) as json_file:
         json.dump(json_map, json_file, indent=4)
+    return json_map
 
-def validate_json(file_path):
+def normalize_json(data):
     """
-    Validates if a JSON file is valid.
-    
+    Recursively sorts JSON data to normalize for comparison.
+    """
+    if isinstance(data, dict):
+        return {k: normalize_json(v) for k, v in sorted(data.items())}
+    elif isinstance(data, list):
+        return sorted([normalize_json(item) for item in data], key=str)
+    else:
+        return data
+
+def compare_json_files(file1, file2):
+    """
+    Compares two JSON files for exact match with modulo sibling order.
+    """
+    with open(file1, 'r') as f1, open(file2, 'r') as f2:
+        json1 = json.load(f1)
+        json2 = json.load(f2)
+
+    normalized_json1 = normalize_json(json1)
+    normalized_json2 = normalize_json(json2)
+
+    return normalized_json1 == normalized_json2
+
+def total_EM_from_json(input_tokens,ner_out, is_out, gold_ner, gold_is):
+    """
+    Calculates the exact match accuracy of the model.
+
     Args:
-        file_path (str): Path to the JSON file.
-        
-    Returns:
-        bool: True if the JSON is valid, False otherwise.
-    """
-    try:
-        with open(file_path, 'r') as file:
-            json.load(file)
-        print(f"The file '{file_path}' contains valid JSON.")
-        return True
-    except (json.JSONDecodeError, FileNotFoundError) as e:
-        print(f"Error: The file '{file_path}' is not valid JSON or does not exist.")
-        print(f"Details: {e}")
-        return False
+        ner_out: The predicted NER labels.
+        is_out: The predicted IS labels.
+        gold_ner: The true NER labels.
+        gold_is: The true IS labels.
 
-# src= "i want to order two medium pizzas with sausage and black olives and two medium pizzas with pepperoni and extra cheese and three large pizzas with pepperoni and sausage"
-# top= "(ORDER i want to order (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING sausage ) and (TOPPING black olives ) ) and (PIZZAORDER (NUMBER two ) (SIZE medium ) pizzas with (TOPPING pepperoni ) and (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) and (PIZZAORDER (NUMBER three ) (SIZE large ) pizzas with (TOPPING pepperoni ) and (TOPPING sausage ) ) )"
-# src = "i want a pizza with sausage bacon and no extra cheese"
-# top = "(ORDER i want (PIZZAORDER (NUMBER a ) pizza with (TOPPING sausage ) (TOPPING bacon ) and no (NOT (COMPLEX_TOPPING (QUANTITY extra ) (TOPPING cheese ) ) ) ) )"
+    Returns:
+        The exact match accuracy of the model
+    """
+    total = 0
+    correct = 0
+    for i in range(len(ner_out)):
+        file1 = "file1.json"
+        file2 = "file2.json"
+        convert_to_json (file1,input_tokens[i], ner_out[i], is_out[i])
+        convert_to_json (file2,input_tokens[i], gold_ner[i], gold_is[i])
+        correct+=compare_json_files(file1, file2)
+        total += 1
+    return 1.0*correct/total
+
+# src = "i would like to order a medium pizza with italian sausage a small pizza with beef and mushrooms a large combination pizza and four large pepsis"
+# top = "(ORDER i would like to order (PIZZAORDER (NUMBER a ) (SIZE medium ) pizza with (TOPPING italian sausage ) ) (PIZZAORDER (NUMBER a ) (SIZE small ) pizza with (TOPPING beef ) and (TOPPING mushrooms ) ) (PIZZAORDER (NUMBER a ) (SIZE large ) (STYLE combination ) pizza ) and (DRINKORDER (NUMBER four ) (SIZE large ) (DRINKTYPE pepsis ) ) )"
 # ner_labeled_output,is_labeled_output, list_of_tokens=label_complete_dev([src], [top])
-# convert_to_json(tokenize_string_bert(src), ner_labeled_output[0], is_labeled_output[0])
+# convert_to_json("new.json",tokenize_string_bert(src), ner_labeled_output[0], is_labeled_output[0])
